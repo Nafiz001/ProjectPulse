@@ -8,7 +8,7 @@ import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingPage } from '@/components/ui/Loading';
-import { EmptyState } from '@/components/ui/Empty State';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { getStatusColor, getHealthScoreColor } from '@/lib/healthScore';
 
 interface Project {

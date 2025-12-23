@@ -269,7 +269,8 @@ async function seed() {
       },
     ];
 
-    await db.collection('risks').insertMany(risks);
+    const risksResult = await db.collection('risks').insertMany(risks);
+    const riskIds = Object.values(risksResult.insertedIds);
     console.log(`✅ Created ${risks.length} risks\n`);
 
     // Create Activity Logs
@@ -311,7 +312,7 @@ async function seed() {
         userId: employee1Id,
         type: 'risk_updated',
         description: 'Risk status changed to Resolved: Browser Compatibility Issues',
-        metadata: { riskId: risks[3]._id, status: 'Resolved' },
+        metadata: { riskId: riskIds[3], status: 'Resolved' },
         createdAt: new Date('2024-12-14'),
       },
       {
