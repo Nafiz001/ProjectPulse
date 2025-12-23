@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingPage } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Modal } from '@/components/ui/Modal';
+import { Input, TextArea, Select } from '@/components/ui/Input';
+import { Alert } from '@/components/ui/Alert';
 import { getStatusColor, getHealthScoreColor } from '@/lib/healthScore';
 
 interface Project {
@@ -23,11 +26,30 @@ interface Project {
   employees: any[];
 }
 
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export default function AdminDashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    clientId: '',
+    employeeIds: [] as string[],
+    startDate: '',
+    endDate: '',
+  });
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -37,6 +59,7 @@ export default function AdminDashboard() {
         router.push('/');
       } else {
         fetchProjects();
+        fetchUsers();
       }
     }
   }, [user, authLoading, router]);
@@ -62,6 +85,80 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create project');
+      }
+
+      // Reset form and close modal
+      setFormData({
+        name: '',
+        description: '',
+        clientId: '',
+        employeeIds: [],
+        startDate: '',
+        endDate: '',
+      });
+      setShowCreateModal(false);
+      
+      // Refresh projects list
+      await fetchProjects();
+    } catch (error: any) {
+      setFormError(error.message || 'Failed to create project');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEmployeeSelection = (employeeId: string) => {
+    setFormData(prev => {
+      const isSelected = prev.employeeIds.includes(employeeId);
+      return {
+        ...prev,
+        employeeIds: isSelected
+          ? prev.employeeIds.filter(id => id !== employeeId)
+          : [...prev.employeeIds, employeeId],
+      };
+    });
+  };
+
   if (authLoading || isLoading) {
     return <LoadingPage />;
   }
@@ -74,6 +171,9 @@ export default function AdminDashboard() {
   const atRiskProjects = projects.filter(p => p.status === 'At Risk');
   const criticalProjects = projects.filter(p => p.status === 'Critical');
 
+  const clients = users.filter(u => u.role === 'client');
+  const employees = users.filter(u => u.role === 'employee');
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -83,7 +183,7 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
             <p className="text-gray-600 mt-1">Monitor all projects and team performance</p>
           </div>
-          <Button variant="primary">
+          <Button variant="primary" onClick={() => setShowCreateModal(true)}>
             <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
@@ -231,7 +331,11 @@ export default function AdminDashboard() {
                           {project.employees?.length || 0} members
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => router.push(`/admin/projects/${project._id}`)}
+                          >
                             View Details
                           </Button>
                         </td>
@@ -244,6 +348,123 @@ export default function AdminDashboard() {
           </CardBody>
         </Card>
       </div>
+
+      {/* Create Project Modal */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+          setFormError('');
+          setFormData({
+            name: '',
+            description: '',
+            clientId: '',
+            employeeIds: [],
+            startDate: '',
+            endDate: '',
+          });
+        }}
+        title="Create New Project"
+      >
+        <form onSubmit={handleCreateProject} className="space-y-4">
+          {formError && <Alert type="error" message={formError} />}
+          
+          <Input
+            label="Project Name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Enter project name"
+            required
+          />
+
+          <TextArea
+            label="Description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Enter project description"
+            required
+            rows={3}
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Client <span className="text-red-500">*</span>
+            </label>
+            <select
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={formData.clientId}
+              onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+              required
+            >
+              <option value="">Select a client</option>
+              {clients.map((client) => (
+                <option key={client._id} value={client._id}>
+                  {client.name} ({client.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Assign Employees *
+            </label>
+            <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 space-y-2">
+              {employees.length === 0 ? (
+                <p className="text-sm text-gray-500">No employees available</p>
+              ) : (
+                employees.map((employee) => (
+                  <label key={employee._id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.employeeIds.includes(employee._id)}
+                      onChange={() => handleEmployeeSelection(employee._id)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700">{employee.name} ({employee.email})</span>
+                  </label>
+                ))
+              )}
+            </div>
+            {formData.employeeIds.length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                {formData.employeeIds.length} employee(s) selected
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Start Date"
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              required
+            />
+            <Input
+              label="End Date"
+              type="date"
+              value={formData.endDate}
+              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowCreateModal(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={isSubmitting || formData.employeeIds.length === 0}>
+              {isSubmitting ? 'Creating...' : 'Create Project'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </DashboardLayout>
   );
 }
