@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
 import { authenticateRequest, authorizeRole } from '@/lib/auth';
-import { Risk } from '@/types';
+import { Risk, Project, CheckIn, Feedback } from '@/types';
 import { ObjectId } from 'mongodb';
 
 interface RouteParams {
@@ -72,6 +72,45 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         metadata: { riskId: new ObjectId(id), status },
         createdAt: new Date(),
       });
+    }
+
+    // Recalculate project health score after risk update
+    const { calculateHealthScore, getProjectStatus } = await import('@/lib/healthScore');
+    const project = await db.collection<Project>('projects').findOne({ _id: existingRisk.projectId });
+    
+    if (project) {
+      const recentCheckIns = await db.collection<CheckIn>('checkIns')
+        .find({ projectId: existingRisk.projectId })
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .toArray();
+      const recentFeedback = await db.collection<Feedback>('feedback')
+        .find({ projectId: existingRisk.projectId })
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .toArray();
+      const openRisks = await db.collection<Risk>('risks')
+        .find({ projectId: existingRisk.projectId, status: 'Open' })
+        .toArray();
+      
+      const healthScore = calculateHealthScore({
+        project,
+        recentCheckIns,
+        recentFeedback,
+        openRisks,
+      });
+      const newStatus = getProjectStatus(healthScore);
+      
+      await db.collection('projects').updateOne(
+        { _id: existingRisk.projectId },
+        {
+          $set: {
+            healthScore,
+            status: newStatus,
+            updatedAt: new Date(),
+          },
+        }
+      );
     }
 
     return NextResponse.json({

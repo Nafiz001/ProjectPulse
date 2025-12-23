@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         .toArray();
     }
 
-    // Populate with user data
+    // Populate with user data and recalculate health scores
     const projectsWithUsers = await Promise.all(
       projects!.map(async (project) => {
         const client = await db.collection('users').findOne(
@@ -50,11 +50,55 @@ export async function GET(request: NextRequest) {
           )
           .toArray();
 
+        // Get recent data for health score calculation
+        const recentCheckIns = await db.collection<CheckIn>('checkIns')
+          .find({ projectId: project._id })
+          .sort({ createdAt: -1 })
+          .limit(4)
+          .toArray();
+
+        const recentFeedback = await db.collection<Feedback>('feedback')
+          .find({ projectId: project._id })
+          .sort({ createdAt: -1 })
+          .limit(4)
+          .toArray();
+
+        const openRisks = await db.collection<Risk>('risks')
+          .find({ projectId: project._id, status: 'Open' })
+          .toArray();
+
+        // Calculate current health score
+        const healthScore = calculateHealthScore({
+          project,
+          recentCheckIns,
+          recentFeedback,
+          openRisks,
+        });
+
+        // Get current status based on health score
+        const currentStatus = getProjectStatus(healthScore);
+
+        // Update project if score changed significantly
+        if (Math.abs(healthScore - project.healthScore) > 5) {
+          await db.collection<Project>('projects').updateOne(
+            { _id: project._id },
+            {
+              $set: {
+                healthScore,
+                status: currentStatus,
+                updatedAt: new Date(),
+              },
+            }
+          );
+        }
+
         return {
           ...project,
           _id: project._id!.toString(),
           clientId: project.clientId.toString(),
           employeeIds: project.employeeIds.map(id => id.toString()),
+          healthScore, // Use calculated score
+          status: currentStatus, // Use calculated status
           client,
           employees,
         };

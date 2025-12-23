@@ -87,15 +87,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       openRisks,
     });
 
+    // Get current status based on health score
+    const currentStatus = getProjectStatus(healthScore);
+
     // Update project if score changed significantly
     if (Math.abs(healthScore - project.healthScore) > 5) {
-      const newStatus = getProjectStatus(healthScore);
       await db.collection<Project>('projects').updateOne(
         { _id: new ObjectId(id) },
         {
           $set: {
             healthScore,
-            status: newStatus,
+            status: currentStatus,
             updatedAt: new Date(),
           },
         }
@@ -110,6 +112,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         clientId: project.clientId.toString(),
         employeeIds: project.employeeIds.map(id => id.toString()),
         healthScore,
+        status: currentStatus, // Use calculated status
         client,
         employees,
       },
@@ -137,7 +140,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
     const body = await request.json();
-    const { name, description, clientId, employeeIds, startDate, endDate, status } = body;
+    const { name, description, clientId, employeeIds, startDate, endDate } = body;
 
     const db = await getDatabase();
 
@@ -151,7 +154,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (employeeIds) updateData.employeeIds = employeeIds.map((id: string) => new ObjectId(id));
     if (startDate) updateData.startDate = new Date(startDate);
     if (endDate) updateData.endDate = new Date(endDate);
-    if (status) updateData.status = status;
 
     const result = await db.collection<Project>('projects').updateOne(
       { _id: new ObjectId(id) },
@@ -165,13 +167,48 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Log activity
-    if (status) {
+    // Recalculate health score and status after update
+    const project = await db.collection<Project>('projects').findOne({ _id: new ObjectId(id) });
+    if (project) {
+      const recentCheckIns = await db.collection<CheckIn>('checkIns')
+        .find({ projectId: new ObjectId(id) })
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .toArray();
+      const recentFeedback = await db.collection<Feedback>('feedback')
+        .find({ projectId: new ObjectId(id) })
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .toArray();
+      const openRisks = await db.collection<Risk>('risks')
+        .find({ projectId: new ObjectId(id), status: 'Open' })
+        .toArray();
+      
+      const healthScore = calculateHealthScore({
+        project,
+        recentCheckIns,
+        recentFeedback,
+        openRisks,
+      });
+      const newStatus = getProjectStatus(healthScore);
+      
+      await db.collection('projects').updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            healthScore,
+            status: newStatus,
+            updatedAt: new Date(),
+          },
+        }
+      );
+
+      // Log activity for status change
       await db.collection('activityLogs').insertOne({
         projectId: new ObjectId(id),
         userId: new ObjectId(jwtPayload.userId),
         type: 'status_change',
-        description: `Project status changed to ${status}`,
+        description: `Project updated, health score recalculated: ${healthScore}`,
         createdAt: new Date(),
       });
     }
