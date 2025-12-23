@@ -365,6 +365,7 @@ export default function AdminDashboard() {
           });
         }}
         title="Create New Project"
+        size="lg"
       >
         <form onSubmit={handleCreateProject} className="space-y-4">
           {formError && <Alert type="error" message={formError} />}
