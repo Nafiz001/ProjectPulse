@@ -300,47 +300,51 @@ export default function ClientDashboard() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {projects.map((project) => (
-                  <div key={project._id} className="border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-shadow">
+                  <div key={project._id} className="border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-shadow h-full flex flex-col">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <h4 className="text-lg font-semibold text-gray-900">{project.name}</h4>
-                        <p className="text-sm text-gray-600 mt-2">{project.description}</p>
+                        <p className="text-sm text-gray-600 mt-2 line-clamp-3">{project.description}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 mb-4">
-                      {getStatusBadge(project.status)}
-                      <div className={`px-3 py-1 rounded-full font-bold text-lg ${getHealthColor(project.healthScore)}`}>
-                        {project.healthScore}/100
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-center gap-3">
+                        {getStatusBadge(project.status)}
+                        <div className={`px-3 py-1 rounded-full font-bold text-lg ${getHealthColor(project.healthScore)}`}>
+                          {project.healthScore}/100
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span>{project.employees.length} team members</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2 text-sm text-gray-600 mb-4">
-                      <div className="flex items-center gap-2">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <Button 
+                        variant="primary" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => openFeedbackModal(project._id)}
+                      >
+                        <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                         </svg>
-                        <span>{formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span>{project.employees.length} team members</span>
-                      </div>
+                        Submit Feedback
+                      </Button>
                     </div>
-
-                    <Button 
-                      variant="primary" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => openFeedbackModal(project._id)}
-                    >
-                      <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                      </svg>
-                      Submit Feedback
-                    </Button>
                   </div>
                 ))}
               </div>
