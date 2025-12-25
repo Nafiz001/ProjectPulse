@@ -60,6 +60,7 @@ export default function EmployeeDashboard() {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingCheckIns, setPendingCheckIns] = useState<Project[]>([]);
   
   // Modal states
   const [showCheckInModal, setShowCheckInModal] = useState(false);
@@ -138,6 +139,20 @@ export default function EmployeeDashboard() {
         const risksData = await risksResponse.json();
         setRisks(risksData.data || []);
       }
+
+      // Calculate pending check-ins after data is fetched
+      const now = new Date();
+      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const pending = projects.filter((project: Project) => {
+        const recentCheckIn = checkIns.find((checkIn: CheckIn) => 
+          checkIn.projectId._id === project._id && 
+          new Date(checkIn.createdAt) >= startOfWeek
+        );
+        return !recentCheckIn;
+      });
+      setPendingCheckIns(pending);
 
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -359,6 +374,37 @@ export default function EmployeeDashboard() {
             </CardBody>
           </Card>
         </div>
+
+        {/* Pending Check-ins */}
+        {pendingCheckIns.length > 0 && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-orange-900">Pending Check-ins</h3>
+              <p className="text-sm text-orange-700 mt-1">These projects need check-ins this week</p>
+            </CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-1 gap-4">
+                {pendingCheckIns.map((project) => (
+                  <div key={project._id} className="border border-orange-200 rounded-lg p-4 bg-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">{project.name}</h4>
+                        <p className="text-sm text-gray-600 mt-1">Status: {project.status}</p>
+                      </div>
+                      <Button
+                        variant="primary"
+                        onClick={() => openCheckInModal(project._id)}
+                        className="bg-orange-600 hover:bg-orange-700"
+                      >
+                        Submit Check-in
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
         {/* Assigned Projects */}
         <Card>

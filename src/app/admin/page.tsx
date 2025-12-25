@@ -24,6 +24,8 @@ interface Project {
   endDate: string;
   client: any;
   employees: any[];
+  checkIns?: any[];
+  risks?: any[];
 }
 
 interface User {
@@ -73,6 +75,60 @@ const getProjectIconColor = (name: string) => {
   return colors[index];
 };
 
+// Project Card Component
+const ProjectCard = ({ project }: { project: Project }) => {
+  const iconColor = getProjectIconColor(project.name);
+
+  return (
+    <div className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.location.href = `/admin/projects/${project._id}`}>
+      <Card className="border border-gray-200">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`flex-shrink-0 h-8 w-8 rounded-lg ${iconColor.bg} flex items-center justify-center ${iconColor.text}`}>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-sm font-semibold text-gray-900 truncate">{project.name}</h4>
+              <p className="text-xs text-gray-600 truncate">{project.client?.name || 'N/A'}</p>
+            </div>
+          </div>
+          <div className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+            project.status === 'On Track' ? 'bg-green-100 text-green-800' :
+            project.status === 'At Risk' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-red-100 text-red-800'
+          }`}>
+            {project.healthScore}
+          </div>
+        </div>
+      </CardHeader>
+      <CardBody className="pt-0">
+        <p className="text-xs text-gray-600 mb-3 line-clamp-2">{project.description}</p>
+
+        <div className="flex items-center justify-between text-xs text-gray-600">
+          <span>Team: {project.employees?.length || 0}</span>
+          <span>Risks: {project.risks?.filter(r => r.status === 'Open').length || 0}</span>
+        </div>
+
+        <div className="mt-3">
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full ${
+                project.healthScore >= 80 ? 'bg-green-500' :
+                project.healthScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+              }`}
+              style={{ width: `${project.healthScore}%` }}
+            ></div>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+    </div>
+  );
+};
+
 export default function AdminDashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -80,7 +136,12 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState({
+    onTrack: 1,
+    atRisk: 1,
+    critical: 1
+  });
+  const PROJECTS_PER_PAGE = 2;
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -91,6 +152,7 @@ export default function AdminDashboard() {
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!authLoading) {
@@ -215,6 +277,46 @@ export default function AdminDashboard() {
   const clients = users.filter(u => u.role === 'client');
   const employees = users.filter(u => u.role === 'employee');
 
+  // Group projects by health status
+  const groupedProjects = {
+    onTrack: projects.filter(p => p.healthScore >= 80),
+    atRisk: projects.filter(p => p.healthScore >= 60 && p.healthScore < 80),
+    critical: projects.filter(p => p.healthScore < 60)
+  };
+
+  // Find projects missing recent check-ins (last 7 days)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const missingCheckIns = projects.filter(project => {
+    if (!project.checkIns || project.checkIns.length === 0) return true;
+    const recentCheckIns = project.checkIns.filter(checkIn =>
+      new Date(checkIn.createdAt) > sevenDaysAgo
+    );
+    return recentCheckIns.length === 0;
+  });
+
+  // Get high-risk projects
+  const highRiskProjects = projects.filter(project =>
+    project.risks?.some(risk => risk.severity === 'High' && risk.status === 'Open')
+  );
+
+  // Pagination logic
+  const getPaginatedProjects = (projects: Project[], status: 'onTrack' | 'atRisk' | 'critical') => {
+    const startIndex = (currentPage[status] - 1) * PROJECTS_PER_PAGE;
+    const endIndex = startIndex + PROJECTS_PER_PAGE;
+    return projects.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (projects: Project[]) => {
+    return Math.ceil(projects.length / PROJECTS_PER_PAGE);
+  };
+
+  const handlePageChange = (status: 'onTrack' | 'atRisk' | 'critical', page: number) => {
+    setCurrentPage(prev => ({
+      ...prev,
+      [status]: page
+    }));
+  };
+
   // Filter projects based on search term
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -331,7 +433,220 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Projects List */}
+        {/* Projects grouped by health status in 3-column layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* On Track Projects Column */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-green-50">
+              <h3 className="text-lg font-semibold text-green-800 flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                On Track ({groupedProjects.onTrack.length})
+              </h3>
+            </div>
+            <div className="p-6">
+              {groupedProjects.onTrack.length > 0 ? (
+                <div className="space-y-4">
+                  {getPaginatedProjects(groupedProjects.onTrack, 'onTrack').map(project => (
+                    <ProjectCard key={project._id} project={project} />
+                  ))}
+                  {getTotalPages(groupedProjects.onTrack) > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                      <button
+                        onClick={() => handlePageChange('onTrack', currentPage.onTrack - 1)}
+                        disabled={currentPage.onTrack === 1}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ‹
+                      </button>
+                      <span className="text-sm text-gray-600">
+                        {currentPage.onTrack} of {getTotalPages(groupedProjects.onTrack)}
+                      </span>
+                      <button
+                        onClick={() => handlePageChange('onTrack', currentPage.onTrack + 1)}
+                        disabled={currentPage.onTrack === getTotalPages(groupedProjects.onTrack)}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">No projects on track</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* At Risk Projects Column */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-yellow-50">
+              <h3 className="text-lg font-semibold text-yellow-800 flex items-center gap-2">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                At Risk ({groupedProjects.atRisk.length})
+              </h3>
+            </div>
+            <div className="p-6">
+              {groupedProjects.atRisk.length > 0 ? (
+                <div className="space-y-4">
+                  {getPaginatedProjects(groupedProjects.atRisk, 'atRisk').map(project => (
+                    <ProjectCard key={project._id} project={project} />
+                  ))}
+                  {getTotalPages(groupedProjects.atRisk) > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                      <button
+                        onClick={() => handlePageChange('atRisk', currentPage.atRisk - 1)}
+                        disabled={currentPage.atRisk === 1}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ‹
+                      </button>
+                      <span className="text-sm text-gray-600">
+                        {currentPage.atRisk} of {getTotalPages(groupedProjects.atRisk)}
+                      </span>
+                      <button
+                        onClick={() => handlePageChange('atRisk', currentPage.atRisk + 1)}
+                        disabled={currentPage.atRisk === getTotalPages(groupedProjects.atRisk)}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">No projects at risk</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Critical Projects Column */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-red-50">
+              <h3 className="text-lg font-semibold text-red-800 flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                Critical ({groupedProjects.critical.length})
+              </h3>
+            </div>
+            <div className="p-6">
+              {groupedProjects.critical.length > 0 ? (
+                <div className="space-y-4">
+                  {getPaginatedProjects(groupedProjects.critical, 'critical').map(project => (
+                    <ProjectCard key={project._id} project={project} />
+                  ))}
+                  {getTotalPages(groupedProjects.critical) > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                      <button
+                        onClick={() => handlePageChange('critical', currentPage.critical - 1)}
+                        disabled={currentPage.critical === 1}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ‹
+                      </button>
+                      <span className="text-sm text-gray-600">
+                        {currentPage.critical} of {getTotalPages(groupedProjects.critical)}
+                      </span>
+                      <button
+                        onClick={() => handlePageChange('critical', currentPage.critical + 1)}
+                        disabled={currentPage.critical === getTotalPages(groupedProjects.critical)}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">No critical projects</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Projects missing recent check-ins */}
+        {missingCheckIns.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-yellow-800 mb-4 flex items-center gap-2">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Projects Missing Recent Check-ins ({missingCheckIns.length})
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {missingCheckIns.map(project => (
+                <div key={project._id} className="bg-white p-4 rounded border">
+                  <h4 className="font-medium text-gray-900">{project.name}</h4>
+                  <p className="text-sm text-gray-600">Last check-in: Never or &gt;7 days ago</p>
+                  <Button
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => window.location.href = `/admin/projects/${project._id}`}
+                  >
+                    View Details
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* High-risk projects summary */}
+        {highRiskProjects.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-red-800 mb-4 flex items-center gap-2">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              High-Risk Projects Summary ({highRiskProjects.length})
+            </h3>
+            <div className="space-y-4">
+              {highRiskProjects.map(project => (
+                <div key={project._id} className="bg-white p-4 rounded border">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900">{project.name}</h4>
+                    <span className="text-sm text-red-600 font-medium">
+                      {project.risks?.filter(r => r.severity === 'High' && r.status === 'Open').length || 0} high risks
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {project.risks
+                      ?.filter(r => r.severity === 'High' && r.status === 'Open')
+                      .slice(0, 2)
+                      .map(risk => (
+                        <div key={risk._id} className="text-sm text-gray-600">
+                          • {risk.title}
+                        </div>
+                      ))}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="mt-3"
+                    onClick={() => window.location.href = `/admin/projects/${project._id}?tab=risks`}
+                  >
+                    View All Risks
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All Projects Table (with search) */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-lg leading-6 font-semibold text-gray-900">All Projects</h3>
@@ -422,7 +737,7 @@ export default function AdminDashboard() {
                             <span className="text-xs text-gray-500">/ 100</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 max-w-[6rem] mx-auto">
-                            <div 
+                            <div
                               className={`h-1.5 rounded-full ${
                                 project.healthScore >= 80 ? 'bg-green-500' :
                                 project.healthScore >= 60 ? 'bg-yellow-500' :
@@ -452,7 +767,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
-                            onClick={() => router.push(`/admin/projects/${project._id}`)}
+                            onClick={() => window.location.href = `/admin/projects/${project._id}`}
                             className="text-blue-600 hover:text-blue-800 font-medium"
                           >
                             View Details

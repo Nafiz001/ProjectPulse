@@ -101,6 +101,17 @@ export async function GET(request: NextRequest) {
           status: currentStatus, // Use calculated status
           client,
           employees,
+          checkIns: recentCheckIns.map(checkIn => ({
+            ...checkIn,
+            _id: checkIn._id!.toString(),
+            projectId: checkIn.projectId.toString(),
+            employeeId: checkIn.employeeId.toString(),
+          })),
+          risks: openRisks.map(risk => ({
+            ...risk,
+            _id: risk._id!.toString(),
+            projectId: risk.projectId.toString(),
+          })),
         };
       })
     );
