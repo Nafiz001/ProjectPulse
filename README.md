@@ -10,17 +10,24 @@ A comprehensive full-stack web application for monitoring project health, client
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Tech Stack](#tech-stack)
-- [Features](#features)
-- [Health Score Algorithm](#health-score-algorithm)
-- [Installation](#installation)
-- [Environment Variables](#environment-variables)
-- [Database Setup](#database-setup)
-- [Running the Application](#running-the-application)
-- [Demo Credentials](#demo-credentials)
-- [API Documentation](#api-documentation)
-- [Deployment](#deployment)
+- [Overview](#-overview)
+- [Tech Stack](#️-tech-stack)
+- [Features](#-features)
+- [Health Score Algorithm](#-health-score-algorithm)
+- [Installation](#-installation)
+- [Environment Variables](#-environment-variables)
+- [Database Setup](#️-database-setup)
+- [Running the Application](#-running-the-application)
+- [Demo Credentials](#-demo-credentials)
+- [API Documentation](#-api-documentation)
+- [Deployment](#-deployment)
+- [Project Structure](#-project-structure)
+- [Backend Choice](#-backend-choice)
+- [Demo Video](#-demo-video)
+- [Key Implementation Highlights](#-key-implementation-highlights)
+- [Developer](#-developer)
+- [License](#-license)
+- [Acknowledgments](#-acknowledgments)
 
 ---
 
