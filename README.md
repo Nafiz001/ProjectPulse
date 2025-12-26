@@ -4,6 +4,8 @@
 
 A comprehensive full-stack web application for monitoring project health, client satisfaction, and delivery risks in real-time. Built with Next.js, TypeScript, MongoDB, and Tailwind CSS.
 
+**🌐 Live Demo**: [https://projectpulse-theta.vercel.app/](https://projectpulse-theta.vercel.app/)
+
 ---
 
 ## 📋 Table of Contents
@@ -26,7 +28,11 @@ A comprehensive full-stack web application for monitoring project health, client
 
 ProjectPulse is an internal system designed for IT and software companies to track project progress, client satisfaction, and delivery risks. It provides role-based dashboards for Admins, Employees, and Clients, with an automated Project Health Score calculation system.
 
-**Live Demo**: [Add your deployment URL here]
+This project was built as part of an internship assignment over 10 days, demonstrating full-stack development capabilities with modern web technologies and real-world business logic implementation.
+
+**Live Application**: [https://projectpulse-theta.vercel.app/](https://projectpulse-theta.vercel.app/)
+
+**Repository**: [https://github.com/Nafiz001/ProjectPulse](https://github.com/Nafiz001/ProjectPulse)
 
 ---
 
@@ -54,13 +60,16 @@ ProjectPulse is an internal system designed for IT and software companies to tra
 - **Client**: Project viewing, feedback submission
 
 ### Core Features
-- JWT-based authentication with HTTP-only cookies
-- Automated Project Health Score calculation
-- Weekly employee check-in system
-- Client feedback with satisfaction ratings
-- Risk management (Low/Medium/High severity)
-- Activity timeline tracking
-- Responsive, mobile-friendly UI
+- **JWT-based authentication** with HTTP-only cookies for security
+- **Automated Project Health Score** calculation (0-100 scale)
+- **Weekly employee check-in system** with progress tracking
+- **Client feedback system** with satisfaction ratings
+- **Risk management** with severity levels (Low/Medium/High)
+- **Activity timeline tracking** for complete audit trail
+- **Three-column admin dashboard** (On Track / At Risk / Critical)
+- **Pending check-ins tracker** for employee accountability
+- **Responsive, mobile-friendly UI** with Tailwind CSS
+- **Real-time health score updates** based on new data
 
 ---
 
@@ -209,11 +218,15 @@ npm run lint
 
 ## 👥 Demo Credentials
 
+Access the live application at [https://projectpulse-theta.vercel.app/](https://projectpulse-theta.vercel.app/) using these credentials:
+
 | Role | Email | Password |
 |------|-------|----------|
-| **Admin** | admin@projectpulse.com | Admin@123 |
+| **Admin** | admin@projectpulse.com | Admin123 |
 | **Employee** | employee@projectpulse.com | Employee@123 |
 | **Client** | client@projectpulse.com | Client@123 |
+
+**Note**: The live demo is pre-seeded with sample data for demonstration purposes.
 
 ---
 
@@ -254,7 +267,17 @@ npm run lint
 
 ## 🌐 Deployment
 
-### Vercel Deployment
+### Live Application
+
+**Deployed on Vercel**: [https://projectpulse-theta.vercel.app/](https://projectpulse-theta.vercel.app/)
+
+The application is fully deployed and production-ready, using:
+- **Vercel** for hosting and continuous deployment
+- **MongoDB Atlas** for cloud database
+- **Environment variables** for secure configuration
+- **Automatic HTTPS** and CDN optimization
+
+### Deploy Your Own Instance
 
 1. **Push to GitHub**
 ```bash
@@ -264,16 +287,21 @@ git push origin main
 2. **Deploy on Vercel**
 - Go to [vercel.com](https://vercel.com)
 - Import GitHub repository
-- Select `projectpulse` directory
-- Add environment variables
+- Select `projectpulse` directory as root
+- Add environment variables (see below)
 - Deploy
 
-3. **Environment Variables**
-Add in Vercel dashboard:
-- `MONGODB_URI` (MongoDB Atlas)
-- `JWT_SECRET`
-- `NEXT_PUBLIC_APP_URL` (Vercel URL)
-- All other variables from `.env.example`
+3. **Required Environment Variables**
+Add these in Vercel dashboard:
+```
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/projectpulse
+JWT_SECRET=your-super-secret-jwt-key
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+BCRYPT_SALT_ROUNDS=10
+```
+
+4. **Seed the Database**
+After first deployment, run the seed script locally pointing to your production database, or use MongoDB Compass to import sample data.
 
 ---
 
@@ -313,54 +341,100 @@ projectpulse/
 
 ## 📝 Backend Choice
 
-**This project uses Next.js API Routes (Option B)** for the backend, providing:
-- Serverless architecture
-- Automatic deployment with Vercel
-- Built-in API routing
-- TypeScript support
-- Easy environment variable management
+**This project uses Next.js API Routes (Option B)** as specified in the assignment requirements.
+
+### Why Next.js API Routes?
+- ✅ **Serverless architecture** - No server management required
+- ✅ **Automatic deployment** with Vercel
+- ✅ **Built-in API routing** with file-based structure
+- ✅ **Full TypeScript support** for type-safe APIs
+- ✅ **Easy environment management** and configuration
+- ✅ **Edge-ready** and globally distributed
+- ✅ **Unified codebase** - Frontend and backend in one project
+
+This approach provides a modern, scalable solution suitable for production deployment while maintaining simplicity and developer experience.
 
 ---
 
 ## 🎥 Demo Video
 
-[Add link to your 5-8 minute demo video here]
+A 5-6 minute demonstration video covers:
+1. **Project Overview** - Introduction and tech stack
+2. **Role-Based Login** - Admin, Employee, and Client access
+3. **Weekly Check-In Process** - Employee submission flow
+4. **Health Score Behavior** - Automated calculation logic
+5. **Admin Dashboard Insights** - Three-column layout and analytics
 
-Video should cover:
-- Project overview
-- Role-based login demonstration
-- Weekly check-in process
-- Health score behavior
-- Admin dashboard insights
+[Demo video will be available here]
 
 ---
 
-## 🐛 Future Improvements
+## 📊 Key Implementation Highlights
 
-- Add pagination for project lists
-- Implement real-time notifications
-- Create detailed project pages
-- Add project creation forms
-- Build check-in/feedback submission UIs
-- Implement comprehensive risk management UI
-- Add file attachments
-- Email notifications
-- Advanced analytics
+### 1. **Automated Health Scoring**
+- Real-time calculation based on 4 weighted factors
+- Updates automatically when check-ins, feedback, or risks change
+- Visual categorization (On Track / At Risk / Critical)
+
+### 2. **Role-Based Access Control**
+- JWT authentication with HTTP-only cookies
+- Middleware-based authorization checks
+- Frontend route protection with AuthContext
+
+### 3. **Three-Column Admin Dashboard**
+- Innovative visual layout for quick project assessment
+- Automatic grouping by health status
+- Search and pagination for scalability
+
+### 4. **Pending Check-Ins Tracker**
+- Automatically identifies projects needing weekly updates
+- Week-based calculation (Sunday to Saturday)
+- Ensures employee accountability
+
+### 5. **Production-Ready Code**
+- Zero TypeScript compilation errors
+- ESLint compliant code
+- Type-safe API endpoints
+- Comprehensive error handling
 
 ---
 
 ## 👨‍💻 Developer
 
-Created as part of an internship assignment.
+**Project**: ProjectPulse - Internship Assignment  
+**Timeline**: 10 Days  
+**Developer**: Nafiz Rahman  
+**GitHub**: [github.com/Nafiz001](https://github.com/Nafiz001)  
+**Live Demo**: [projectpulse-theta.vercel.app](https://projectpulse-theta.vercel.app/)
 
-GitHub: [Nafiz001](https://github.com/Nafiz001)
+### Assignment Completion
+✅ All core features implemented  
+✅ Role-based authentication and authorization  
+✅ Automated health score calculation  
+✅ Three-column admin dashboard  
+✅ Weekly check-ins and client feedback  
+✅ Risk management system  
+✅ Production deployment on Vercel  
+✅ Clean, type-safe code with zero errors  
+✅ Comprehensive README documentation  
 
 ---
 
 ## 📄 License
 
-Created for educational purposes as part of an internship assignment.
+This project was created as an internship assignment to demonstrate full-stack development capabilities.
 
 ---
 
-**Built with ❤️ using Next.js, TypeScript, MongoDB, and Tailwind CSS**
+## 🙏 Acknowledgments
+
+- Built with **Next.js 14** App Router
+- Styled with **Tailwind CSS**
+- Database: **MongoDB Atlas**
+- Deployed on **Vercel**
+
+---
+
+**Built with ❤️ for learning and professional growth**
+
+For questions or feedback, please open an issue on [GitHub](https://github.com/Nafiz001/ProjectPulse).
