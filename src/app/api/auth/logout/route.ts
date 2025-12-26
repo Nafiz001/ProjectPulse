@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const response = NextResponse.json({
     success: true,
     message: 'Logout successful',

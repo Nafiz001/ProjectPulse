@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
 import { authenticateRequest, authorizeRole } from '@/lib/auth';
-import { User } from '@/types';
+import { User, UserRole } from '@/types';
 
 // GET /api/users - Get all users (admin only, or filtered for project assignment)
 export async function GET(request: NextRequest) {
@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role');
 
     const db = await getDatabase();
-    let query: any = {};
+    const query: { role?: UserRole } = {};
 
     if (role) {
-      query.role = role;
+      query.role = role as UserRole;
     }
 
     // Only admin can list all users

@@ -41,8 +41,9 @@ export default function LoginPage() {
     try {
       await login(email, password);
       // Navigation will happen via useEffect
-    } catch (err: any) {
-      setError(err.message || 'Failed to login');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to login';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +58,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 px-4">
       <div className="max-w-md w-full">
         {/* Logo and Title */}
         <div className="text-center mb-8">

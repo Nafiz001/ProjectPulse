@@ -144,7 +144,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const db = await getDatabase();
 
-    const updateData: any = {
+    const updateData: {
+      name?: string;
+      description?: string;
+      clientId?: ObjectId;
+      employeeIds?: ObjectId[];
+      startDate?: Date;
+      endDate?: Date;
+      updatedAt: Date;
+    } = {
       updatedAt: new Date(),
     };
 

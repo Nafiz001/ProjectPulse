@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -97,19 +97,7 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'checkins' | 'feedback' | 'risks' | 'activity'>('overview');
 
-  useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login');
-      } else if (user.role !== 'admin') {
-        router.push('/');
-      } else {
-        fetchProjectData();
-      }
-    }
-  }, [user, authLoading, router, projectId]);
-
-  const fetchProjectData = async () => {
+  const fetchProjectData = useCallback(async () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
@@ -181,12 +169,25 @@ export default function ProjectDetailPage() {
         setActivities(activitiesData.data || []);
       }
 
-    } catch (error: any) {
-      setError(error.message || 'Failed to load project data');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load project data';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (user.role !== 'admin') {
+        router.push('/');
+      } else {
+        fetchProjectData();
+      }
+    }
+  }, [user, authLoading, router, projectId, fetchProjectData]);
 
   if (authLoading || isLoading) {
     return <LoadingPage />;
@@ -339,7 +340,7 @@ export default function ProjectDetailPage() {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'overview' | 'checkins' | 'feedback' | 'risks' | 'activity')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'

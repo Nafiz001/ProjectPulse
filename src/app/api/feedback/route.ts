@@ -18,12 +18,17 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
+    const clientId = searchParams.get('clientId');
 
     const db = await getDatabase();
-    let query: any = {};
+    const query: { projectId?: ObjectId; clientId?: ObjectId } = {};
 
     if (projectId) {
       query.projectId = new ObjectId(projectId);
+    }
+
+    if (clientId) {
+      query.clientId = new ObjectId(clientId);
     }
 
     // Filter based on role

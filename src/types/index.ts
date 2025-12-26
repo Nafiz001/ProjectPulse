@@ -72,8 +72,8 @@ export interface Risk {
   updatedAt: Date;
 }
 
-// Activity Log Types
-export type ActivityType = 'checkin' | 'feedback' | 'risk_created' | 'risk_updated' | 'status_change';
+// Activity Types
+export type ActivityType = 'checkin_submitted' | 'feedback_submitted' | 'risk_created' | 'risk_updated' | 'project_created' | 'project_updated';
 
 export interface ActivityLog {
   _id?: ObjectId;
@@ -81,12 +81,12 @@ export interface ActivityLog {
   userId: ObjectId;
   type: ActivityType;
   description: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
 }
 
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

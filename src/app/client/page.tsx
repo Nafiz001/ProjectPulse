@@ -162,8 +162,9 @@ export default function ClientDashboard() {
         fetchData();
       }, 1500);
 
-    } catch (error: any) {
-      setFormError(error.message || 'Failed to submit feedback');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit feedback';
+      setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -405,7 +406,7 @@ export default function ClientDashboard() {
                       </div>
                     </div>
                     {fb.comments && (
-                      <p className="text-sm text-gray-700 mt-2 italic">"{fb.comments}"</p>
+                      <p className="text-sm text-gray-700 mt-2 italic">&ldquo;{fb.comments}&rdquo;</p>
                     )}
                   </div>
                 ))}
@@ -453,7 +454,7 @@ export default function ClientDashboard() {
               )}
               <span className="text-sm text-gray-600 ml-2">({feedbackForm.communicationRating}/5)</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">How would you rate the team's communication?</p>
+            <p className="text-xs text-gray-500 mt-1">How would you rate the team&apos;s communication?</p>
           </div>
 
           <TextArea

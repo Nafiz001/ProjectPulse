@@ -5,14 +5,40 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingPage } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
-import { Input, TextArea, Select } from '@/components/ui/Input';
+import { Input, TextArea } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
-import { getStatusColor, getHealthScoreColor } from '@/lib/healthScore';
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface CheckIn {
+  _id: string;
+  projectId: string;
+  employeeId: string;
+  progressSummary: string;
+  blockers: string;
+  confidenceLevel: number;
+  completionPercentage: number;
+  createdAt: string;
+}
+
+interface Risk {
+  _id: string;
+  projectId: string;
+  title: string;
+  severity: string;
+  mitigationPlan: string;
+  status: string;
+  createdAt: string;
+}
 
 interface Project {
   _id: string;
@@ -22,17 +48,10 @@ interface Project {
   healthScore: number;
   startDate: string;
   endDate: string;
-  client: any;
-  employees: any[];
-  checkIns?: any[];
-  risks?: any[];
-}
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
+  client: User;
+  employees: User[];
+  checkIns?: CheckIn[];
+  risks?: Risk[];
 }
 
 // Helper function to get user initials for avatar
@@ -85,7 +104,7 @@ const ProjectCard = ({ project }: { project: Project }) => {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <div className={`flex-shrink-0 h-8 w-8 rounded-lg ${iconColor.bg} flex items-center justify-center ${iconColor.text}`}>
+            <div className={`shrink-0 h-8 w-8 rounded-lg ${iconColor.bg} flex items-center justify-center ${iconColor.text}`}>
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -243,8 +262,9 @@ export default function AdminDashboard() {
       
       // Refresh projects list
       await fetchProjects();
-    } catch (error: any) {
-      setFormError(error.message || 'Failed to create project');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create project';
+      setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -352,7 +372,7 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium text-gray-600 truncate">Total Projects</p>
                   <p className="mt-1 text-3xl font-bold text-gray-900">{projects.length}</p>
                 </div>
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                <div className="shrink-0 w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                   <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -374,7 +394,7 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium text-gray-600 truncate">On Track</p>
                   <p className="mt-1 text-3xl font-bold text-green-600">{onTrackProjects.length}</p>
                 </div>
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                <div className="shrink-0 w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
                   <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -396,7 +416,7 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium text-gray-600 truncate">At Risk</p>
                   <p className="mt-1 text-3xl font-bold text-yellow-600">{atRiskProjects.length}</p>
                 </div>
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
+                <div className="shrink-0 w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
                   <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
@@ -418,7 +438,7 @@ export default function AdminDashboard() {
                   <p className="text-sm font-medium text-gray-600 truncate">Critical</p>
                   <p className="mt-1 text-3xl font-bold text-red-600">{criticalProjects.length}</p>
                 </div>
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                <div className="shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
                   <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -708,14 +728,14 @@ export default function AdminDashboard() {
                       <tr key={project._id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className={`flex-shrink-0 h-10 w-10 rounded-lg ${iconColor.bg} flex items-center justify-center ${iconColor.text}`}>
+                            <div className={`shrink-0 h-10 w-10 rounded-lg ${iconColor.bg} flex items-center justify-center ${iconColor.text}`}>
                               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-semibold text-gray-900">{project.name}</div>
-                              <div className="text-xs text-gray-500 truncate max-w-[200px]">{project.description}</div>
+                              <div className="text-xs text-gray-500 truncate max-w-50">{project.description}</div>
                             </div>
                           </div>
                         </td>
@@ -736,7 +756,7 @@ export default function AdminDashboard() {
                             <span className="text-sm font-bold text-gray-900 mr-1">{project.healthScore}</span>
                             <span className="text-xs text-gray-500">/ 100</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 max-w-[6rem] mx-auto">
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 max-w-24 mx-auto">
                             <div
                               className={`h-1.5 rounded-full ${
                                 project.healthScore >= 80 ? 'bg-green-500' :

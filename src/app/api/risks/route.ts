@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
 import { authenticateRequest, authorizeRole } from '@/lib/auth';
-import { Risk, Project, CheckIn, Feedback } from '@/types';
+import { Risk, RiskStatus, Project, CheckIn, Feedback } from '@/types';
 import { ObjectId } from 'mongodb';
 
 // GET /api/risks - Get risks (with optional projectId filter)
@@ -18,17 +18,22 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
+    const employeeId = searchParams.get('employeeId');
     const status = searchParams.get('status');
 
     const db = await getDatabase();
-    let query: any = {};
+    const query: { projectId?: ObjectId; employeeId?: ObjectId; status?: RiskStatus } = {};
 
     if (projectId) {
       query.projectId = new ObjectId(projectId);
     }
 
+    if (employeeId) {
+      query.employeeId = new ObjectId(employeeId);
+    }
+
     if (status) {
-      query.status = status;
+      query.status = status as RiskStatus;
     }
 
     // Filter based on role

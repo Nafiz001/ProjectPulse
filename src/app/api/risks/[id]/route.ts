@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
 import { authenticateRequest, authorizeRole } from '@/lib/auth';
-import { Risk, Project, CheckIn, Feedback } from '@/types';
+import { Risk, RiskSeverity, RiskStatus, Project, CheckIn, Feedback } from '@/types';
 import { ObjectId } from 'mongodb';
 
 interface RouteParams {
@@ -48,7 +48,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const updateData: any = {
+    const updateData: {
+      title?: string;
+      severity?: RiskSeverity;
+      mitigationPlan?: string;
+      status?: RiskStatus;
+      updatedAt: Date;
+    } = {
       updatedAt: new Date(),
     };
 

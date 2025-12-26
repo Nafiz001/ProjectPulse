@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -85,21 +85,11 @@ export default function EmployeeDashboard() {
   const [formSuccess, setFormSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login');
-      } else if (user.role !== 'employee') {
-        router.push('/');
-      } else {
-        fetchData();
-      }
-    }
-  }, [user, authLoading, router]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
+      
+      let fetchedProjects: Project[] = [];
       
       // Fetch projects
       const projectsResponse = await fetch('/api/projects', {
@@ -112,6 +102,7 @@ export default function EmployeeDashboard() {
       if (projectsResponse.ok) {
         const projectsData = await projectsResponse.json();
         setProjects(projectsData.data || []);
+        fetchedProjects = projectsData.data || [];
       }
 
       // Fetch check-ins
@@ -122,9 +113,11 @@ export default function EmployeeDashboard() {
         credentials: 'include',
       });
 
+      let fetchedCheckIns: CheckIn[] = [];
       if (checkInsResponse.ok) {
         const checkInsData = await checkInsResponse.json();
         setCheckIns(checkInsData.data || []);
+        fetchedCheckIns = checkInsData.data || [];
       }
 
       // Fetch risks
@@ -145,8 +138,8 @@ export default function EmployeeDashboard() {
       const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
       startOfWeek.setHours(0, 0, 0, 0);
       
-      const pending = projects.filter((project: Project) => {
-        const recentCheckIn = checkIns.find((checkIn: CheckIn) => 
+      const pending = fetchedProjects.filter((project: Project) => {
+        const recentCheckIn = fetchedCheckIns.find((checkIn: CheckIn) => 
           checkIn.projectId._id === project._id && 
           new Date(checkIn.createdAt) >= startOfWeek
         );
@@ -159,7 +152,19 @@ export default function EmployeeDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (user.role !== 'employee') {
+        router.push('/');
+      } else {
+        fetchData();
+      }
+    }
+  }, [user, authLoading, router, fetchData]);
 
   const handleSubmitCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,8 +207,9 @@ export default function EmployeeDashboard() {
         fetchData();
       }, 1500);
 
-    } catch (error: any) {
-      setFormError(error.message || 'Failed to submit check-in');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit check-in';
+      setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -249,8 +255,9 @@ export default function EmployeeDashboard() {
         fetchData();
       }, 1500);
 
-    } catch (error: any) {
-      setFormError(error.message || 'Failed to report risk');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to report risk';
+      setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
